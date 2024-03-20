@@ -178,10 +178,12 @@ int main(){
 		start += bound;
 	}
 		
+	int num_cores = sysconf(_SC_NPROCESSORS_ONLN); // get number of cores
+	
  	gettimeofday(&begin, NULL);
 
 	// setting of cpu affinity
-	for(int i=0; i<5; i++){
+	for(int i=0; i<num_cores-1; i++){
 		CPU_SET(i, &cpuset);
 	}
 	
