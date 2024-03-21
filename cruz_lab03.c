@@ -25,6 +25,46 @@ typedef struct threadargs {
 	int end;
 }ARGS;
 
+// function for actual pearson correlation coefficient factor computation (row-wise)
+void *row_pearson_corr(void *args){
+	double sum_x, sum_x2, sum_y, sum_y2, sum_xy, ans;
+	
+	ARGS* temp = (ARGS*) args;
+	
+	int tid = temp->tid;
+	int n = temp->n; 
+	int start = temp->start;
+	int end = temp->end;
+	int* y = temp->y; 
+	int** matrix = temp->matrix;
+	
+	for(int i=start; i<end; i++){
+		sum_x = sum_x2 = sum_y = sum_y2 = sum_xy = ans = 0;
+		
+		for(int j=0; j<n; j++){
+			sum_x += matrix[i][j];
+			sum_x2 += (matrix[i][j] * matrix[i][j]);
+			sum_y += y[j];
+			sum_y2 += (y[j] * y[j]);
+			sum_xy += (matrix[i][j] * y[j]);
+		}
+		
+		ans = (n*sum_xy - (sum_x * sum_y)) / sqrt(((n*sum_x2) - (sum_x * sum_x)) * ((n*sum_y2) - (sum_y * sum_y)));
+
+		if(isnan(ans) || ans > 1 || ans < -1){
+				printf("Submatrix %d: %f, %f, %f, %f, %f\n", tid, sum_x, sum_x2, sum_y, sum_y2, sum_xy);
+				break;
+		}	
+		
+		pthread_mutex_lock(&lock);
+		r[i] = ans;
+		pthread_mutex_unlock(&lock);
+	}
+
+	
+	pthread_exit(NULL);
+}
+
 // function for actual pearson correlation coefficient factor computation (column-wise)
 void *pearson_corr(void *args){
 	double sum_x, sum_x2, sum_y, sum_y2, sum_xy, ans;
@@ -65,7 +105,7 @@ void *pearson_corr(void *args){
 }
 
 int main(){
-	int n, t, randnum, bound = 0, start = 0, remainder = 0, end = 0;
+	int n, t, wise, randnum, bound = 0, start = 0, remainder = 0, end = 0;
 	struct timeval begin, stop;
 	cpu_set_t cpuset;
 	CPU_ZERO(&cpuset);
@@ -80,6 +120,11 @@ int main(){
 	
 	scanf("%d", &t);
 
+	// asking for column-wise or row-wise
+	printf("column-wise (0) or row-wise (1)? ");
+	
+	scanf("%d", &wise);
+	
 	// initialization of mutex
 	if (pthread_mutex_init(&lock, NULL) != 0) { 
       printf("Mutex initialization failed\n"); 
@@ -188,9 +233,16 @@ int main(){
 	}
 	
 	// creation of threads
-	for(int i=0; i<t; i++){
-		pthread_create(&tid[i], NULL, pearson_corr, (void *)&params[i]);
-		pthread_setaffinity_np(tid[i], sizeof(cpu_set_t), &cpuset);
+	if(wise == 0){
+		for(int i=0; i<t; i++){
+			pthread_create(&tid[i], NULL, pearson_corr, (void *)&params[i]);
+			pthread_setaffinity_np(tid[i], sizeof(cpu_set_t), &cpuset);
+		}
+	} else{
+		for(int i=0; i<t; i++){
+			pthread_create(&tid[i], NULL, row_pearson_corr, (void *)&params[i]);
+			pthread_setaffinity_np(tid[i], sizeof(cpu_set_t), &cpuset);
+		}
 	}
 
 	// thread joining
