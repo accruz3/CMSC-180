@@ -238,14 +238,14 @@ void* client(char* ip, int count, int port){
 		}
 	 
 	 	// FOR CHECKING 
-	  /*
+	  
 	  for(int i=0; i<n; i++) {
 			for(int j=0; j<(end-start); j++) {
 				printf("%d\t", matrix[i][j]);
 			}
 			printf("\n");
 		}
-		*/
+		
 		
 	  if(matrix && n && start && end) write(sockfd, ack, sizeof(ack)); 
 	}
@@ -328,7 +328,7 @@ int main(int argc, char *argv[]){
 		}
 			
 		// FOR CHECKING: prints original matrix and vector y
-		/*
+		
 		for(int i=0; i<n; i++){
 		 	for(int j=0; j<n; j++){
 		 		printf("%d\t", matrix[i][j]);
@@ -337,12 +337,12 @@ int main(int argc, char *argv[]){
 		}
 		
 		printf("\n");
-		*/ 
+		
 			
 		// computing remainder
 		remainder = n % t;
 		
-		count = 0, bound = 0, start = 0, remainder = 0, end = 0;
+		start = 0, end = 0;
 		
 		// initialization of params
 		for(int i=0; i<t; i++){
@@ -359,6 +359,8 @@ int main(int argc, char *argv[]){
 			params[i].tid = i;
 			
 			start += bound;
+			
+			printf("%d %d %d %d\n", params[i].start, params[i].end, params[i].tid, bound);
 		}
 				
 	 	//gettimeofday(&begin, NULL);
