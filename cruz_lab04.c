@@ -45,21 +45,16 @@ typedef struct params {
 	int port;
 } PARAMS;
 
-typedef struct serverargs {
-	int sockfd;
-	struct sockaddr_in servaddr;	
-} SERVERARGS; 
-
 struct timeval begin;
 
 void* handle_acknowledgements(void* args) {
-	  int sockfd = *((int*)args);
-	  char ack[4];
-	  
-	  printf("%d acknowledged\n", sockfd);
-	  read(sockfd, ack, sizeof(ack)); 
-	  close(sockfd);
-	  pthread_exit(NULL);
+	int sockfd = *((int*)args);
+	char ack[4];
+	
+	printf("%d acknowledged\n", sockfd);
+	read(sockfd, ack, sizeof(ack)); 
+	close(sockfd);
+	pthread_exit(NULL);
 }
 
 void* handle_writes(void* args) {
@@ -88,21 +83,11 @@ void* handle_writes(void* args) {
 	pthread_exit(NULL);
 }
 
-void* server_thread(void* args) {
-	SERVERARGS* temp = (SERVERARGS*) args;
-	
-	int sockfd = temp->sockfd;
-	struct sockaddr_in servaddr = temp->servaddr;
-	
-}
-
-void server(char* IP, int count, int port, ARGS* params, int* ports){
+void server(char* ip, int count, int port, ARGS* params, int* ports){
 	int sockfd[count], connfd[count], len, clientnum = 0; 
 	struct sockaddr_in servaddr[count], cli[count]; 
 	pthread_t readThreads[count], writeThreads[count], serverThreads[count];
 	CLIENTARGS clientarg[count];
-	SERVERARGS serverarg[count];
-	//const char* IP = "10.0.2.15";
 	char ack[4];
  	
  	for(int i=0; i<count; i++){
@@ -120,7 +105,7 @@ void server(char* IP, int count, int port, ARGS* params, int* ports){
 	 	
 		// assign IP, PORT 
 		serverarg[i].servaddr.sin_family = AF_INET; 
-		serverarg[i].servaddr.sin_addr.s_addr = inet_addr(IP); 
+		serverarg[i].servaddr.sin_addr.s_addr = inet_addr(ip); 
 		serverarg[i].servaddr.sin_port = htons(ports[i]); 
 	 	
 	 	// Binding newly created socket to given IP and verification 
@@ -139,8 +124,6 @@ void server(char* IP, int count, int port, ARGS* params, int* ports){
 		else {
 				printf("Server listening..\n"); 
 		}	
-	
-	 	//pthread_create(&serverThreads[i], NULL, server_thread, (void*)&serverarg[i]);
  	}
 		
 	while(clientnum < count){
@@ -171,7 +154,6 @@ void server(char* IP, int count, int port, ARGS* params, int* ports){
 		CPU_SET(i, &cpuset);
 	}
 	
-	
 	while(clientnum < count) {				
 		clientarg[clientnum].tid = clientnum;
 		clientarg[clientnum].matrix = params[clientnum].matrix;
@@ -185,13 +167,9 @@ void server(char* IP, int count, int port, ARGS* params, int* ports){
 		
 		read(sockfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
-		
-		//pthread_create(&readThreads[clientnum], NULL, handle_acknowledgements, &connfd[clientnum]);
-		//printf("received client %d acknowledgement...\n", clientnum);
 	}
 	
 	for(int i = 0; i < count; i++) {
-		//pthread_join(serverThreads[i], NULL);
 	  pthread_join(writeThreads[i], NULL);
 	}
 }
@@ -201,14 +179,6 @@ void* client(char* ip, int count, int port){
 	ARGS submatrix;
 	struct sockaddr_in servaddr, cli;
 	char ack[4];
-	
-	/*
-	PARAMS* temp = (PARAMS*) args;
-	
-	char* ip = temp->ip;
-	int count = temp->count;
-	int port = temp->port;
-	*/
 	
 	// socket create and verification
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
@@ -240,7 +210,6 @@ void* client(char* ip, int count, int port){
 		  read(sockfd, &n, sizeof(int));
   	  read(sockfd, &tid, sizeof(int));
   	  		
-		printf("start:%d\n", start);
 		  int** matrix = (int**) malloc (sizeof(int*) * n);
 		  if(matrix == NULL){
 		  	perror("Memory allocation failed!\n");
@@ -320,23 +289,6 @@ int main(int argc, char *argv[]){
 	fclose(fp);
 	if (line) free(line);
 	
-	/*
-	// asking for matrix size
-	printf("enter matrix size: ");
-	
-	scanf("%d", &n);
-	
-	// asking for port number
-	printf("enter port number: ");
-	
-	scanf("%d", &p);
-	
-	// asking for status
-	printf("enter status: ");
-	
-	scanf("%d", &s);
-	*/
-
 	if(s == 0) {
 		// initialization of arrays
 		int** matrix = (int**) malloc (sizeof(int*) * n); // main matrix
@@ -381,15 +333,7 @@ int main(int argc, char *argv[]){
 		}
 		
 		printf("\n");
-		
-		/*
-		for(int j=0; j<n; j++){
-	 		printf("%d\t", y[j]);
-		}
-
-		printf("\n");
-		*/
-		
+				
 		// computing remainder
 		remainder = n % t;
 		
@@ -425,26 +369,6 @@ int main(int argc, char *argv[]){
 		free(params); 
 		 	
 	} else {		
-		
-		/*
-		pthread_t* tid = (pthread_t*) malloc (sizeof(pthread_t) * t); // array for thread id
-		PARAMS* clientarg = (PARAMS*) malloc (sizeof(PARAMS) * t);
-		
-		for(int i=0; i<t; i++){
-			clientarg[i].ip = ip_addr;
-			clientarg[i].count = t;
-			clientarg[i].port = ports[i]; 
-		}
-		
-		for(int i=0; i<t; i++){
-			pthread_create(&tid[i], NULL, client, (void *)&clientarg[i]);
-		}
-		
-		for(int i=0; i<t; i++){
-			pthread_join(tid[i], NULL);
-		}
-		*/
-		
 		client(ip_addr, t, p);			
 	}
 
