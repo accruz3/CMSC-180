@@ -90,7 +90,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	struct sockaddr_in servaddr[count], cli[count]; 
 	pthread_t readThreads[count], writeThreads[count], serverThreads[count];
 	CLIENTARGS clientarg[count];
-	SERVERARGS serverarg[count];
+	SERVERARGS serverarg[count];	
 	char ack[4];
  	
  	for(int i=0; i<count; i++){
@@ -200,53 +200,54 @@ void* client(char* ip, int count, int port){
 
 	// connect the client socket to server socket
 	if (connect(sockfd, (SA*)&servaddr, sizeof(servaddr)) != 0) {
-		  perror("connection with the server failed...\n");
-		  exit(0);
+	  perror("connection with the server failed...\n");
+	  exit(0);
 	}
 	else {
-		  printf("connected to the server..\n");
-		  
-			gettimeofday(&begin, NULL);
-		  		
-		  read(sockfd, &start, sizeof(int));
-		  read(sockfd, &end, sizeof(int));
-		  read(sockfd, &n, sizeof(int));
-  	  read(sockfd, &tid, sizeof(int));
-  	  		
-		  int** matrix = (int**) malloc (sizeof(int*) * n);
-		  if(matrix == NULL){
-		  	perror("Memory allocation failed!\n");
-		  }
+	  printf("connected to the server..\n");
+	  
+		gettimeofday(&begin, NULL);
+	  		
+	  read(sockfd, &start, sizeof(int));
+	  read(sockfd, &end, sizeof(int));
+	  read(sockfd, &n, sizeof(int));
+	  read(sockfd, &tid, sizeof(int));
+	  		
+	  int** matrix = (int**) malloc (sizeof(int*) * n);
+	  if(matrix == NULL){
+	  	perror("Memory allocation failed!\n");
+	  }
 
-		  for(int i=0; i<n; i++){
-				if(end != start) {
-					matrix[i] = (int*) malloc (sizeof(int) * (end-start));
-				} else{
-					matrix[i] = (int*) malloc (sizeof(int) * 1);
-				}
-				
-				if(matrix[i] == NULL){
-					perror("Memory allocation failed\n");
-				}
+	  for(int i=0; i<n; i++){
+			if(end != start) {
+				matrix[i] = (int*) malloc (sizeof(int) * (end-start));
+			} else{
+				matrix[i] = (int*) malloc (sizeof(int) * 1);
 			}
-		  
-		  for(int i=0; i<(end-start); i++) {
-				for(int j=0; j<n; j++) {
-					read(sockfd, &element, sizeof(int));
-					matrix[j][i] = element;
-				}
+			
+			if(matrix[i] == NULL){
+				perror("Memory allocation failed\n");
 			}
-		 
-		 	// FOR CHECKING 
-		  
-		  for(int i=0; i<n; i++) {
-				for(int j=0; j<(end-start); j++) {
-					printf("%d\t", matrix[i][j]);
-				}
-				printf("\n");
+		}
+	  
+	  for(int i=0; i<(end-start); i++) {
+			for(int j=0; j<n; j++) {
+				read(sockfd, &element, sizeof(int));
+				matrix[j][i] = element;
 			}
-
-		  if(matrix && n && start && end) write(sockfd, ack, sizeof(ack)); 
+		}
+	 
+	 	// FOR CHECKING 
+	  /*
+	  for(int i=0; i<n; i++) {
+			for(int j=0; j<(end-start); j++) {
+				printf("%d\t", matrix[i][j]);
+			}
+			printf("\n");
+		}
+		*/
+		
+	  if(matrix && n && start && end) write(sockfd, ack, sizeof(ack)); 
 	}
 
 	// close the socket
@@ -326,8 +327,8 @@ int main(int argc, char *argv[]){
 			}
 		}
 			
-		// FOR CHECKING: prints original matrix	and vector y
-		
+		// FOR CHECKING: prints original matrix and vector y
+		/*
 		for(int i=0; i<n; i++){
 		 	for(int j=0; j<n; j++){
 		 		printf("%d\t", matrix[i][j]);
@@ -336,7 +337,8 @@ int main(int argc, char *argv[]){
 		}
 		
 		printf("\n");
-				
+		*/ 
+			
 		// computing remainder
 		remainder = n % t;
 		
