@@ -360,7 +360,7 @@ int main(int argc, char *argv[]){
 			
 			start += bound;
 			
-			printf("%d %d %d %d\n", params[i].start, params[i].end, params[i].tid, bound);
+			//printf("%d %d %d %d\n", params[i].start, params[i].end, params[i].tid, bound);
 		}
 				
 	 	//gettimeofday(&begin, NULL);
