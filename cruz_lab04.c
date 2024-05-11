@@ -19,9 +19,6 @@ Section: CMSC 180 T-6L
 #include <sched.h> 
 #define SA struct sockaddr
 
-pthread_mutex_t lock;
-double* r;
-
 typedef struct threadargs {
 	int** matrix;
 	int n;
@@ -44,6 +41,11 @@ typedef struct params {
 	int count;
 	int port;
 } PARAMS;
+
+typedef struct serverargs {
+	int sockfd;
+	struct sockaddr_in servaddr;	
+} SERVERARGS; 
 
 struct timeval begin;
 
@@ -88,6 +90,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	struct sockaddr_in servaddr[count], cli[count]; 
 	pthread_t readThreads[count], writeThreads[count], serverThreads[count];
 	CLIENTARGS clientarg[count];
+	SERVERARGS serverarg[count];
 	char ack[4];
  	
  	for(int i=0; i<count; i++){
