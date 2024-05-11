@@ -76,7 +76,7 @@ void* handle_writes(void* args) {
 	write(connfd, &end, sizeof(int));
 	write(connfd, &n, sizeof(int));
 	write(connfd, &tid, sizeof(int));
-
+	
 	for(int i=start; i<end; i++) {
 		for(int j=0; j<n; j++) {
 			int element = matrix[j][i];
@@ -273,8 +273,7 @@ void* client(char* ip, int count, int port){
 				}
 				printf("\n");
 			}
-			
-		
+
 		  if(matrix && n && start && end) write(sockfd, ack, sizeof(ack)); 
 	}
 
@@ -393,6 +392,8 @@ int main(int argc, char *argv[]){
 		
 		// computing remainder
 		remainder = n % t;
+		
+		count = 0, bound = 0, start = 0, remainder = 0, end = 0;
 		
 		// initialization of params
 		for(int i=0; i<t; i++){
