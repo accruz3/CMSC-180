@@ -292,7 +292,6 @@ void* client(char* ip, int count, int port){
 			}	
 			
 			r[i] = ans;
-			printf("%f\n", ans);
 		}
 		
 	 	// FOR CHECKING 
@@ -310,18 +309,14 @@ void* client(char* ip, int count, int port){
 			printf("%d\t", y[i]);
 		}
 		*/
-		
-	  if(matrix && n && start && end) {
-	  
-	  	for(int i=0; i<n; i++){
-	  		int element = r[i];
-	  		//printf("%d\t", element);
-	  		write(sockfd, &element, sizeof(double));
-	  	}
-	  	
-	  	printf("\n");
-	  	write(sockfd, ack, sizeof(ack)); 
-	  } 
+
+  	for(int i=0; i<n; i++){
+  		double element = r[i];
+  		write(sockfd, &element, sizeof(double));
+  	}
+  	
+  	printf("\n");
+  	write(sockfd, ack, sizeof(ack)); 
 	}
 
 	// close the socket
