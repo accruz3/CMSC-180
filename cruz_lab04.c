@@ -36,6 +36,7 @@ typedef struct clientargs {
 	int start;
 	int end;
 	int connfd;
+	int sockfd;
 } CLIENTARGS;
 
 typedef struct params {
@@ -72,6 +73,9 @@ void* handle_writes(void* args) {
 	int** matrix = temp->matrix;
 	int* y = temp->y;
 	
+	double* r = (double*) malloc (sizeof(double) * n):
+	double temp;
+	
 	write(connfd, &start, sizeof(int));
 	write(connfd, &end, sizeof(int));
 	write(connfd, &n, sizeof(int));
@@ -87,6 +91,12 @@ void* handle_writes(void* args) {
 	for(int i=0; i<n; i++){
 		int element = y[i];
 		write(connfd, &element, sizeof(int));
+	}
+	
+	for(int i=0; i<params[clientnum].n; i++) {
+		read(sockfd[clientnum], &temp, sizeof(double));
+		printf("%f\n", temp);
+		if(temp != -2) r[i] = temp;
 	}
 		
 	close(connfd);
@@ -176,16 +186,11 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		clientarg[clientnum].end = params[clientnum].end;
 		clientarg[clientnum].n = params[clientnum].n;
 		clientarg[clientnum].connfd = connfd[clientnum];
+		clientarg[clientnum].sockfd = sockfd[clientnum];
 		
 		pthread_create(&writeThreads[clientnum], NULL, handle_writes, &clientarg[clientnum]);
 		pthread_setaffinity_np(writeThreads[clientnum], sizeof(cpu_set_t), &cpuset);
-		
-		for(int i=0; i<params[clientnum].n; i++) {
-			read(sockfd[clientnum], &temp, sizeof(double));
-			printf("%f\n", temp);
-			if(temp != -2) r[i] = temp;
-		}
-		
+				
 		read(sockfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
