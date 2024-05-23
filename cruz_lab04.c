@@ -70,11 +70,12 @@ void* handle_writes(void* args) {
 	int start = temp->start;
 	int end = temp->end;
 	int connfd = temp->connfd;
+	int sockfd = temp->sockfd;
 	int** matrix = temp->matrix;
 	int* y = temp->y;
 	
-	double* r = (double*) malloc (sizeof(double) * n):
-	double temp;
+	double* r = (double*) malloc (sizeof(double) * n);
+	double r_temp;
 	
 	write(connfd, &start, sizeof(int));
 	write(connfd, &end, sizeof(int));
@@ -93,10 +94,10 @@ void* handle_writes(void* args) {
 		write(connfd, &element, sizeof(int));
 	}
 	
-	for(int i=0; i<params[clientnum].n; i++) {
-		read(sockfd[clientnum], &temp, sizeof(double));
-		printf("%f\n", temp);
-		if(temp != -2) r[i] = temp;
+	for(int i=0; i<n; i++) {
+		read(sockfd, &r_temp, sizeof(double));
+		printf("%f\n", r_temp);
+		if(r_temp != -2) r[i] = r_temp;
 	}
 		
 	close(connfd);
