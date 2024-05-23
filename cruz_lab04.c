@@ -50,7 +50,6 @@ typedef struct serverargs {
 } SERVERARGS; 
 
 struct timeval begin, stop;
-pthread_mutex_t lock;
 
 void* handle_acknowledgements(void* args) {
 	int sockfd = *((int*)args);
@@ -329,9 +328,10 @@ void client(char* ip, int count, int port){
   	for(int i=0; i<n; i++){
   		printf("%f\n", r[i]);
   	}
+  	
+  	printf("\n");
 		*/
 		
-  	printf("\n");
   	write(sockfd, r, sizeof(double) * n);
   	write(sockfd, ack, sizeof(ack)); 
 	}
