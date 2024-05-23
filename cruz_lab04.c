@@ -101,7 +101,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	SERVERARGS serverarg[count];	
 	char ack[4];
 	double* r = (double*) malloc (sizeof(double) * params[clientnum].n); // vector r
-	int temp;
+	double temp;
  	
  	for(int i=0; i<count; i++){
  		// socket create and verification 
@@ -182,19 +182,19 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		
 		for(int i=0; i<params[clientnum].n; i++) {
 			read(sockfd[clientnum], &temp, sizeof(double));
-			if(r[i] != -2) r[i] = temp;
+			printf("%f\n", temp);
+			if(temp != -2) r[i] = temp;
 		}
 		
 		read(sockfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
 	
-	/*
-	printf("r:");
-	for(int i=0; i<params[clientnum].n; i++) {
-		printf("%d\t", r[i]);
-	}
-	*/
+
+	//printf("r:");
+	//for(int i=0; i<params[clientnum].n; i++) {
+	//	printf("%f\t", r[i]);
+	//}
 	
 	printf("\n");
 	
