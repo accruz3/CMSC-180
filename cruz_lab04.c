@@ -49,7 +49,7 @@ typedef struct serverargs {
 	struct sockaddr_in servaddr;	
 } SERVERARGS; 
 
-struct timeval begin;
+struct timeval begin, stop;
 pthread_mutex_t lock;
 
 void* handle_acknowledgements(void* args) {
@@ -187,7 +187,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		read(connfd[clientnum], r_temp, sizeof(double) * params[clientnum].n);
 		
 		for(int i=0; i<params[clientnum].n; i++) {
-			printf("%f\n", i, r_temp[i]);
+			printf("%f\n", r_temp[i]);
 		}
 				
 		read(connfd[clientnum], ack, sizeof(ack));
@@ -235,8 +235,6 @@ void* client(char* ip, int count, int port){
 	}
 	else {
 	  printf("connected to the server..\n");
-	  
-		gettimeofday(&begin, NULL);
 	  		
 	  read(sockfd, &start, sizeof(int));
 	  read(sockfd, &end, sizeof(int));
@@ -276,6 +274,8 @@ void* client(char* ip, int count, int port){
 			y[i] = element;
 		}
 		
+		gettimeofday(&begin, NULL);
+		
 		for(int i=start; i<end; i++){
 			sum_x = sum_x2 = sum_y = sum_y2 = sum_xy = ans = 0;
 			
@@ -296,6 +296,8 @@ void* client(char* ip, int count, int port){
 			
 			r[i] = ans;
 		}
+		
+		gettimeofday(&stop, NULL);
 		
 	 	// FOR CHECKING 
 	  /*
@@ -466,12 +468,11 @@ int main(int argc, char *argv[]){
 				
 		free(matrix);
 		free(params); 
-		 	
+		gettimeofday(&stop, NULL);
+		
 	} else {		
 		client(ip_addr, t, p);			
 	}
-
-	gettimeofday(&stop, NULL);
 	
 	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
 
