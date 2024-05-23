@@ -186,31 +186,35 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		
 		read(connfd[clientnum], r_temp, sizeof(double) * params[clientnum].n);
 		
+		int r_bound = params[clientnum].start;
+		
 		for(int i=0; i<params[clientnum].n; i++) {
-			printf("%f\n", r_temp[i]);
+			if(r_temp[i] != -2) r[r_bound++] = r_temp[i];
 		}
 				
 		read(connfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
 	
-	//printf("r:");
-	//for(int i=0; i<params[clientnum].n; i++) {
-	//	printf("%f\t", r[i]);
-	//}
+
+	/* 	
+	for(int i=0; i<params[0].n; i++) {
+		printf("%f\n", r[i]);
+	}
 	
 	printf("\n");
+	*/
+	
+	gettimeofday(&stop, NULL);
 	
 	for(int i = 0; i < count; i++) {
 	  pthread_join(writeThreads[i], NULL);
 	}
 	
-	gettimeofday(&stop, NULL);
-	
 	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
 }
 
-void* client(char* ip, int count, int port){
+void client(char* ip, int count, int port){
 	int sockfd, connfd, n, start, end, element, tid;
 	double sum_x, sum_x2, sum_y, sum_y2, sum_xy, ans;
 	ARGS submatrix;
@@ -280,7 +284,9 @@ void* client(char* ip, int count, int port){
 		
 		gettimeofday(&begin, NULL);
 		
-		for(int i=start; i<end; i++){
+		int r_bound = start;
+		
+		for(int i=start; i<(end-start); i++){
 			sum_x = sum_x2 = sum_y = sum_y2 = sum_xy = ans = 0;
 			
 			for(int j=0; j<n; j++){
@@ -298,10 +304,12 @@ void* client(char* ip, int count, int port){
 					break;
 			}	
 			
-			r[i] = ans;
+			r[r_bound++] = ans;
 		}
 		
 		gettimeofday(&stop, NULL);
+		
+		printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
 		
 	 	// FOR CHECKING 
 	  /*
@@ -317,12 +325,12 @@ void* client(char* ip, int count, int port){
 		for(int i=0; i<n; i++){
 			printf("%d\t", y[i]);
 		}
-		*/
 	
   	for(int i=0; i<n; i++){
   		printf("%f\n", r[i]);
   	}
-  	
+		*/
+		
   	printf("\n");
   	write(sockfd, r, sizeof(double) * n);
   	write(sockfd, ack, sizeof(ack)); 
@@ -330,8 +338,6 @@ void* client(char* ip, int count, int port){
 
 	// close the socket
 	close(sockfd);
-	
-	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
 }
 
 int main(int argc, char *argv[]){
