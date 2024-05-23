@@ -100,6 +100,8 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	CLIENTARGS clientarg[count];
 	SERVERARGS serverarg[count];	
 	char ack[4];
+	int* r = (int*) malloc (sizeof(int) * params[clientnum].n); // vector r
+	int temp;
  	
  	for(int i=0; i<count; i++){
  		// socket create and verification 
@@ -178,9 +180,20 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		pthread_create(&writeThreads[clientnum], NULL, handle_writes, &clientarg[clientnum]);
 		pthread_setaffinity_np(writeThreads[clientnum], sizeof(cpu_set_t), &cpuset);
 		
+		for(int i=0; i<params[clientnum].n; i++) {
+			read(sockfd[clientnum], &temp, sizeof(int));
+			if(r[i] != -2) r[i] = temp;
+		}
+		
 		read(sockfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
+	
+	for(int i=0; i<params[clientnum].n; i++) {
+		printf("%d\t", r[i]);
+	}
+	
+	printf("\n");
 	
 	for(int i = 0; i < count; i++) {
 	  pthread_join(writeThreads[i], NULL);
@@ -189,6 +202,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 
 void* client(char* ip, int count, int port){
 	int sockfd, connfd, n, start, end, element, tid;
+	double sum_x, sum_x2, sum_y, sum_y2, sum_xy, ans;
 	ARGS submatrix;
 	struct sockaddr_in servaddr, cli;
 	char ack[4];
@@ -222,9 +236,10 @@ void* client(char* ip, int count, int port){
 	  read(sockfd, &end, sizeof(int));
 	  read(sockfd, &n, sizeof(int));
 	  read(sockfd, &tid, sizeof(int));
-	  		
+
 	  int** matrix = (int**) malloc (sizeof(int*) * n);
 	  int* y = (int*) malloc (sizeof(int) * n);
+		int* r = (int*) malloc (sizeof(int) * n); // vector r
 	  
 	  if(matrix == NULL || y == NULL){
 	  	perror("Memory allocation failed!\n");
@@ -251,11 +266,33 @@ void* client(char* ip, int count, int port){
 	 
 		for(int i=0; i<n; i++){
 			read(sockfd, &element, sizeof(int));
+			r[i] = -2;
 			y[i] = element;
 		}
 		
+		for(int i=start; i<end; i++){
+			sum_x = sum_x2 = sum_y = sum_y2 = sum_xy = ans = 0;
+			
+			for(int j=0; j<n; j++){
+				sum_x += matrix[j][i];
+				sum_x2 += (matrix[j][i] * matrix[j][i]);
+				sum_y += y[j];
+				sum_y2 += (y[j] * y[j]);
+				sum_xy += (matrix[j][i] * y[j]);
+			}
+			
+			ans = (n*sum_xy - (sum_x * sum_y)) / sqrt(((n*sum_x2) - (sum_x * sum_x)) * ((n*sum_y2) - (sum_y * sum_y)));
+
+			if(isnan(ans) || ans > 1 || ans < -1){
+					printf("Submatrix %d: %f, %f, %f, %f, %f\n", tid, sum_x, sum_x2, sum_y, sum_y2, sum_xy);
+					break;
+			}	
+			
+			r[i] = ans;
+		}
+		
 	 	// FOR CHECKING 
-	  
+	  /*
 	  for(int i=0; i<n; i++) {
 			for(int j=0; j<(end-start); j++) {
 				printf("%d\t", matrix[i][j]);
@@ -268,8 +305,17 @@ void* client(char* ip, int count, int port){
 		for(int i=0; i<n; i++){
 			printf("%d\t", y[i]);
 		}
+		*/
 		
-	  if(matrix && n && start && end) write(sockfd, ack, sizeof(ack)); 
+	  if(matrix && n && start && end) {
+	  
+	  	for(int i=0; i<n; i++){
+	  		int element = r[i];
+	  		write(sockfd, &element, sizeof(int));
+	  	}
+	  	
+	  	write(sockfd, ack, sizeof(ack)); 
+	  } 
 	}
 
 	// close the socket
@@ -284,7 +330,7 @@ int main(int argc, char *argv[]){
 	char* ip_addr = NULL;
 	size_t len = 0;
 	ssize_t read;
-	
+		
 	fp = fopen("cruz_lab04_config.in", "r");
 	if(fp == NULL){
 		exit(EXIT_FAILURE);
@@ -301,17 +347,17 @@ int main(int argc, char *argv[]){
 		strncpy(ip_addr, line, strlen(line) - 1);
     ip_addr[strlen(line) - 1] = '\0';
 	}
-	
+			
 	if(getline(&line, &len, fp) != -1) {
 		t = atoi(line);
 	}
-	
+			
 	int ports[t]; // initialize ports array
-	
-	while ((read = getline(&line, &len, fp)) != -1) {
+		
+	while ((read = getline(&line, &len, fp)) != -1 && count < t) {
 		if(!(read > 0 && line[0] == '\n')) ports[count++] = atoi(line);
 	}
-
+	
 	fclose(fp);
 	if (line) free(line);
 	
@@ -320,12 +366,12 @@ int main(int argc, char *argv[]){
 		int** matrix = (int**) malloc (sizeof(int*) * n); // main matrix
 		int* y = (int*) malloc (sizeof(int) * n); // vector y
 		ARGS* params = (ARGS*) malloc (sizeof(ARGS) * t); // parameters for thread function
-
+				
 		if(matrix == NULL || params == NULL || y == NULL){
 			printf("Memory allocation failed\n");
 			return 0;
 		}
-		
+				
 		// 2d arrays
 		for(int i=0; i<n; i++){
 			matrix[i] = (int*) malloc (sizeof(int) * n);
@@ -361,7 +407,7 @@ int main(int argc, char *argv[]){
 		}
 			
 		// FOR CHECKING: prints original matrix and vector y
-		
+		/*
 		for(int i=0; i<n; i++){
 		 	for(int j=0; j<n; j++){
 		 		printf("%d\t", matrix[i][j]);
@@ -376,7 +422,10 @@ int main(int argc, char *argv[]){
 		for(int i=0; i<n; i++){
 			printf("%d\t", y[i]);
 		}
-			
+		
+		printf("\n");
+		*/
+		
 		// computing remainder
 		remainder = n % t;
 		
