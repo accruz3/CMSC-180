@@ -189,9 +189,12 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		clientnum += 1;
 	}
 	
+	/*
+	printf("r:");
 	for(int i=0; i<params[clientnum].n; i++) {
 		printf("%d\t", r[i]);
 	}
+	*/
 	
 	printf("\n");
 	
@@ -292,7 +295,7 @@ void* client(char* ip, int count, int port){
 		}
 		
 	 	// FOR CHECKING 
-	  /*
+
 	  for(int i=0; i<n; i++) {
 			for(int j=0; j<(end-start); j++) {
 				printf("%d\t", matrix[i][j]);
@@ -305,7 +308,7 @@ void* client(char* ip, int count, int port){
 		for(int i=0; i<n; i++){
 			printf("%d\t", y[i]);
 		}
-		*/
+
 		
 	  if(matrix && n && start && end) {
 	  
@@ -407,7 +410,7 @@ int main(int argc, char *argv[]){
 		}
 			
 		// FOR CHECKING: prints original matrix and vector y
-		/*
+
 		for(int i=0; i<n; i++){
 		 	for(int j=0; j<n; j++){
 		 		printf("%d\t", matrix[i][j]);
@@ -424,7 +427,7 @@ int main(int argc, char *argv[]){
 		}
 		
 		printf("\n");
-		*/
+
 		
 		// computing remainder
 		remainder = n % t;
