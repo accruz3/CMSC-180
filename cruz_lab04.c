@@ -21,6 +21,7 @@ Section: CMSC 180 T-6L
 
 typedef struct threadargs {
 	int** matrix;
+	int* y;
 	int n;
 	int tid;
 	int start;
@@ -29,6 +30,7 @@ typedef struct threadargs {
 
 typedef struct clientargs {
 	int** matrix;
+	int* y;
 	int n;
 	int tid;
 	int start;
@@ -68,6 +70,7 @@ void* handle_writes(void* args) {
 	int end = temp->end;
 	int connfd = temp->connfd;
 	int** matrix = temp->matrix;
+	int* y = temp->y;
 	
 	write(connfd, &start, sizeof(int));
 	write(connfd, &end, sizeof(int));
@@ -79,6 +82,11 @@ void* handle_writes(void* args) {
 			int element = matrix[j][i];
 			write(connfd, &element, sizeof(int));
 		}
+	}
+	
+	for(int i=0; i<n; i++){
+		int element = y[i];
+		write(connfd, &element, sizeof(int));
 	}
 		
 	close(connfd);
@@ -146,7 +154,6 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	
 	clientnum = 0;
 	printf("all clients accepted...\n");
-	gettimeofday(&begin, NULL);
 
 	cpu_set_t cpuset;
 	CPU_ZERO(&cpuset);
@@ -157,9 +164,12 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		CPU_SET(i, &cpuset);
 	}
 	
+	gettimeofday(&begin, NULL);
+	
 	while(clientnum < count) {				
 		clientarg[clientnum].tid = clientnum;
 		clientarg[clientnum].matrix = params[clientnum].matrix;
+		clientarg[clientnum].y = params[clientnum].y;
 		clientarg[clientnum].start = params[clientnum].start;
 		clientarg[clientnum].end = params[clientnum].end;
 		clientarg[clientnum].n = params[clientnum].n;
@@ -214,7 +224,9 @@ void* client(char* ip, int count, int port){
 	  read(sockfd, &tid, sizeof(int));
 	  		
 	  int** matrix = (int**) malloc (sizeof(int*) * n);
-	  if(matrix == NULL){
+	  int* y = (int*) malloc (sizeof(int) * n);
+	  
+	  if(matrix == NULL || y == NULL){
 	  	perror("Memory allocation failed!\n");
 	  }
 
@@ -237,15 +249,25 @@ void* client(char* ip, int count, int port){
 			}
 		}
 	 
+		for(int i=0; i<n; i++){
+			read(sockfd, &element, sizeof(int));
+			y[i] = element;
+		}
+		
 	 	// FOR CHECKING 
-	  /*
+	  
 	  for(int i=0; i<n; i++) {
 			for(int j=0; j<(end-start); j++) {
 				printf("%d\t", matrix[i][j]);
 			}
 			printf("\n");
 		}
-		*/
+		
+		printf("==================\n");
+		
+		for(int i=0; i<n; i++){
+			printf("%d\t", y[i]);
+		}
 		
 	  if(matrix && n && start && end) write(sockfd, ack, sizeof(ack)); 
 	}
@@ -296,9 +318,10 @@ int main(int argc, char *argv[]){
 	if(s == 0) {
 		// initialization of arrays
 		int** matrix = (int**) malloc (sizeof(int*) * n); // main matrix
+		int* y = (int*) malloc (sizeof(int) * n); // vector y
 		ARGS* params = (ARGS*) malloc (sizeof(ARGS) * t); // parameters for thread function
 
-		if(matrix == NULL || params == NULL){
+		if(matrix == NULL || params == NULL || y == NULL){
 			printf("Memory allocation failed\n");
 			return 0;
 		}
@@ -313,6 +336,16 @@ int main(int argc, char *argv[]){
 			}
 		}
 		
+		// filling up vector y with random values
+		for(int i=0; i<n; i++){
+			do{
+				randnum = rand() % 16;
+			}while(randnum == 0);
+			
+			y[i] = randnum;
+			randnum = 0;
+		}
+	
 		// filling up matrix with values
 		srand(time(NULL));
 		
@@ -328,7 +361,7 @@ int main(int argc, char *argv[]){
 		}
 			
 		// FOR CHECKING: prints original matrix and vector y
-		/*
+		
 		for(int i=0; i<n; i++){
 		 	for(int j=0; j<n; j++){
 		 		printf("%d\t", matrix[i][j]);
@@ -337,7 +370,12 @@ int main(int argc, char *argv[]){
 		}
 		
 		printf("\n");
-		*/
+		
+		printf("==================\n");
+		
+		for(int i=0; i<n; i++){
+			printf("%d\t", y[i]);
+		}
 			
 		// computing remainder
 		remainder = n % t;
@@ -353,6 +391,7 @@ int main(int argc, char *argv[]){
 			}
 			
 			params[i].matrix = matrix;
+			params[i].y = y;
 			params[i].n = n;
 			params[i].start = start; // starting column
 			params[i].end = start+bound; // ending column
