@@ -36,7 +36,6 @@ typedef struct clientargs {
 	int start;
 	int end;
 	int connfd;
-	int sockfd;
 } CLIENTARGS;
 
 typedef struct params {
@@ -70,7 +69,6 @@ void* handle_writes(void* args) {
 	int start = temp->start;
 	int end = temp->end;
 	int connfd = temp->connfd;
-	int sockfd = temp->sockfd;
 	int** matrix = temp->matrix;
 	int* y = temp->y;
 	
@@ -94,12 +92,6 @@ void* handle_writes(void* args) {
 		write(connfd, &element, sizeof(int));
 	}
 	
-	for(int i=0; i<n; i++) {
-		read(sockfd, &r_temp, sizeof(double));
-		printf("%f\n", r_temp);
-		if(r_temp != -2) r[i] = r_temp;
-	}
-		
 	close(connfd);
 	pthread_exit(NULL);
 }
@@ -187,16 +179,20 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		clientarg[clientnum].end = params[clientnum].end;
 		clientarg[clientnum].n = params[clientnum].n;
 		clientarg[clientnum].connfd = connfd[clientnum];
-		clientarg[clientnum].sockfd = sockfd[clientnum];
 		
 		pthread_create(&writeThreads[clientnum], NULL, handle_writes, &clientarg[clientnum]);
 		pthread_setaffinity_np(writeThreads[clientnum], sizeof(cpu_set_t), &cpuset);
-				
-		read(sockfd[clientnum], ack, sizeof(ack));
+		
+		for(int i=0; i<params[clientnum].n; i++) {
+			read(connfd[clientnum], &temp, sizeof(double));
+			printf("%f\n", temp);
+			if(temp != -2) r[i] = temp;
+		}
+	
+		read(connfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
 	
-
 	//printf("r:");
 	//for(int i=0; i<params[clientnum].n; i++) {
 	//	printf("%f\t", r[i]);
