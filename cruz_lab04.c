@@ -100,7 +100,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	CLIENTARGS clientarg[count];
 	SERVERARGS serverarg[count];	
 	char ack[4];
-	int* r = (int*) malloc (sizeof(int) * params[clientnum].n); // vector r
+	double* r = (double*) malloc (sizeof(double) * params[clientnum].n); // vector r
 	int temp;
  	
  	for(int i=0; i<count; i++){
@@ -181,7 +181,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		pthread_setaffinity_np(writeThreads[clientnum], sizeof(cpu_set_t), &cpuset);
 		
 		for(int i=0; i<params[clientnum].n; i++) {
-			read(sockfd[clientnum], &temp, sizeof(int));
+			read(sockfd[clientnum], &temp, sizeof(double));
 			if(r[i] != -2) r[i] = temp;
 		}
 		
@@ -242,7 +242,7 @@ void* client(char* ip, int count, int port){
 
 	  int** matrix = (int**) malloc (sizeof(int*) * n);
 	  int* y = (int*) malloc (sizeof(int) * n);
-		int* r = (int*) malloc (sizeof(int) * n); // vector r
+		double* r = (double*) malloc (sizeof(double) * n); // vector r
 	  
 	  if(matrix == NULL || y == NULL){
 	  	perror("Memory allocation failed!\n");
@@ -292,10 +292,11 @@ void* client(char* ip, int count, int port){
 			}	
 			
 			r[i] = ans;
+			printf("%f\n", ans);
 		}
 		
 	 	// FOR CHECKING 
-
+	  /*
 	  for(int i=0; i<n; i++) {
 			for(int j=0; j<(end-start); j++) {
 				printf("%d\t", matrix[i][j]);
@@ -308,15 +309,17 @@ void* client(char* ip, int count, int port){
 		for(int i=0; i<n; i++){
 			printf("%d\t", y[i]);
 		}
-
+		*/
 		
 	  if(matrix && n && start && end) {
 	  
 	  	for(int i=0; i<n; i++){
 	  		int element = r[i];
-	  		write(sockfd, &element, sizeof(int));
+	  		//printf("%d\t", element);
+	  		write(sockfd, &element, sizeof(double));
 	  	}
 	  	
+	  	printf("\n");
 	  	write(sockfd, ack, sizeof(ack)); 
 	  } 
 	}
@@ -410,7 +413,7 @@ int main(int argc, char *argv[]){
 		}
 			
 		// FOR CHECKING: prints original matrix and vector y
-
+		/*
 		for(int i=0; i<n; i++){
 		 	for(int j=0; j<n; j++){
 		 		printf("%d\t", matrix[i][j]);
@@ -427,7 +430,7 @@ int main(int argc, char *argv[]){
 		}
 		
 		printf("\n");
-
+		*/
 		
 		// computing remainder
 		remainder = n % t;
