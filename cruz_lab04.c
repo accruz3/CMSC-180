@@ -5,6 +5,7 @@ Section: CMSC 180 T-6L
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <time.h>
 #include <netdb.h> 
@@ -36,6 +37,7 @@ typedef struct clientargs {
 	int start;
 	int end;
 	int connfd;
+	double* r; 
 } CLIENTARGS;
 
 typedef struct params {
@@ -50,6 +52,7 @@ typedef struct serverargs {
 } SERVERARGS; 
 
 struct timeval begin, stop;
+pthread_mutex_t lock;
 
 void* handle_acknowledgements(void* args) {
 	int sockfd = *((int*)args);
@@ -71,9 +74,7 @@ void* handle_writes(void* args) {
 	int connfd = temp->connfd;
 	int** matrix = temp->matrix;
 	int* y = temp->y;
-	
-	double* r = (double*) malloc (sizeof(double) * n);
-	double r_temp;
+	double* r = temp->r;
 	
 	write(connfd, &start, sizeof(int));
 	write(connfd, &end, sizeof(int));
@@ -91,7 +92,15 @@ void* handle_writes(void* args) {
 		int element = y[i];
 		write(connfd, &element, sizeof(int));
 	}
-			
+	
+	int count = 0;
+	double r_temp;
+	
+	for(int i=0; i<(end-start); i++) {
+		read(connfd, &r_temp, sizeof(double));
+		r[i] = r_temp;
+	}
+		
 	close(connfd);
 	pthread_exit(NULL);
 }
@@ -102,9 +111,8 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	pthread_t readThreads[count], writeThreads[count], serverThreads[count];
 	CLIENTARGS clientarg[count];
 	SERVERARGS serverarg[count];	
-	char ack[4];
 	double* r = (double*) malloc (sizeof(double) * params[clientnum].n); // vector r
-	double* r_temp = (double*) malloc (sizeof(double) * params[clientnum].n);
+	char ack[4];
  	
  	for(int i=0; i<count; i++){
  		// socket create and verification 
@@ -172,6 +180,8 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	gettimeofday(&begin, NULL);
 	
 	while(clientnum < count) {				
+		double* r_temp = (double*) malloc (sizeof(double) * params[clientnum].n);
+		
 		clientarg[clientnum].tid = clientnum;
 		clientarg[clientnum].matrix = params[clientnum].matrix;
 		clientarg[clientnum].y = params[clientnum].y;
@@ -179,23 +189,16 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		clientarg[clientnum].end = params[clientnum].end;
 		clientarg[clientnum].n = params[clientnum].n;
 		clientarg[clientnum].connfd = connfd[clientnum];
+		clientarg[clientnum].r = r_temp;
 		
 		pthread_create(&writeThreads[clientnum], NULL, handle_writes, &clientarg[clientnum]);
 		pthread_setaffinity_np(writeThreads[clientnum], sizeof(cpu_set_t), &cpuset);
-		
-		read(connfd[clientnum], r_temp, sizeof(double) * params[clientnum].n);
-		
-		int r_bound = params[clientnum].start;
-		
-		for(int i=0; i<params[clientnum].n; i++) {
-			if(r_temp[i] != -2) r[r_bound++] = r_temp[i];
-		}
-				
-		read(connfd[clientnum], ack, sizeof(ack));
+					 
+		read(sockfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
 	
-
+	// FOR CHECKING
 	/* 	
 	for(int i=0; i<params[0].n; i++) {
 		printf("%f\n", r[i]);
@@ -204,17 +207,26 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	printf("\n");
 	*/
 	
-	gettimeofday(&stop, NULL);
-	
 	for(int i = 0; i < count; i++) {
 	  pthread_join(writeThreads[i], NULL);
 	}
 	
-	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
+	int temp = 0;
+	
+	for(int i = 0; i < count; i++) {
+		for(int j=0; j<clientarg[i].end-clientarg[i].start; j++) {
+			r[temp++] = clientarg[i].r[j];
+			//printf("%f\n", clientarg[i].r[j]);
+		}
+	}
+	
+	printf("%d\n", temp);
+
+	gettimeofday(&stop, NULL);
 }
 
-void client(char* ip, int count, int port){
-	int sockfd, connfd, n, start, end, element, tid;
+void* client(char* ip, int count, int port){
+	int sockfd, connfd, n, start, end, element, tid, r_temp;
 	double sum_x, sum_x2, sum_y, sum_y2, sum_xy, ans;
 	ARGS submatrix;
 	struct sockaddr_in servaddr, cli;
@@ -241,18 +253,18 @@ void client(char* ip, int count, int port){
 	  exit(0);
 	}
 	else {
-	  printf("connected to the server..\n");
-	  		
+  	printf("connected to the server..\n");
+	  
 	  read(sockfd, &start, sizeof(int));
 	  read(sockfd, &end, sizeof(int));
 	  read(sockfd, &n, sizeof(int));
 	  read(sockfd, &tid, sizeof(int));
-
+	  		
 	  int** matrix = (int**) malloc (sizeof(int*) * n);
 	  int* y = (int*) malloc (sizeof(int) * n);
-		double* r = (double*) malloc (sizeof(double) * n); // vector r
+	  double* r = (double*) malloc (sizeof(double) * n);
 	  
-	  if(matrix == NULL || y == NULL){
+	  if(matrix == NULL){
 	  	perror("Memory allocation failed!\n");
 	  }
 
@@ -272,22 +284,24 @@ void client(char* ip, int count, int port){
 			for(int j=0; j<n; j++) {
 				read(sockfd, &element, sizeof(int));
 				matrix[j][i] = element;
+				//printf("%d\n", element);
 			}
 		}
-	 
+	
 		for(int i=0; i<n; i++){
-			read(sockfd, &element, sizeof(int));
+			read(sockfd, &r_temp, sizeof(int));
 			r[i] = -2;
-			y[i] = element;
-		}
-		
-		gettimeofday(&begin, NULL);
+			y[i] = r_temp;
+		}	 	
 		
 		int r_bound = start;
 		
-		for(int i=start; i<(end-start); i++){
+		gettimeofday(&begin, NULL);
+		printf("%d\n", end-start);
+		
+		for(int i=0; i<(end-start); i++){
 			sum_x = sum_x2 = sum_y = sum_y2 = sum_xy = ans = 0;
-			
+						
 			for(int j=0; j<n; j++){
 				sum_x += matrix[j][i];
 				sum_x2 += (matrix[j][i] * matrix[j][i]);
@@ -304,36 +318,26 @@ void client(char* ip, int count, int port){
 			}	
 			
 			r[r_bound++] = ans;
+			write(sockfd, &ans, sizeof(double));
 		}
-		
+				
 		gettimeofday(&stop, NULL);
-		
-		printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
-		
-	 	// FOR CHECKING 
-	  /*
-	  for(int i=0; i<n; i++) {
+	 
+		// FOR CHECKING 
+		/*
+		for(int i=0; i<n; i++) {
 			for(int j=0; j<(end-start); j++) {
 				printf("%d\t", matrix[i][j]);
 			}
 			printf("\n");
 		}
 		
-		printf("==================\n");
-		
-		for(int i=0; i<n; i++){
-			printf("%d\t", y[i]);
+		for(int i=0; i<n; i++) {
+			printf("%f\n", r[i]);
 		}
-	
-  	for(int i=0; i<n; i++){
-  		printf("%f\n", r[i]);
-  	}
-  	
-  	printf("\n");
 		*/
-		
-  	write(sockfd, r, sizeof(double) * n);
-  	write(sockfd, ack, sizeof(ack)); 
+				
+		write(sockfd, ack, sizeof(ack));
 	}
 
 	// close the socket
@@ -347,7 +351,7 @@ int main(int argc, char *argv[]){
 	char* ip_addr = NULL;
 	size_t len = 0;
 	ssize_t read;
-		
+	
 	fp = fopen("cruz_lab04_config.in", "r");
 	if(fp == NULL){
 		exit(EXIT_FAILURE);
@@ -364,31 +368,31 @@ int main(int argc, char *argv[]){
 		strncpy(ip_addr, line, strlen(line) - 1);
     ip_addr[strlen(line) - 1] = '\0';
 	}
-			
+	
 	if(getline(&line, &len, fp) != -1) {
 		t = atoi(line);
 	}
-			
+	
 	int ports[t]; // initialize ports array
-		
-	while ((read = getline(&line, &len, fp)) != -1 && count < t) {
+	
+	while ((read = getline(&line, &len, fp)) != -1) {
 		if(!(read > 0 && line[0] == '\n')) ports[count++] = atoi(line);
 	}
-	
+
 	fclose(fp);
 	if (line) free(line);
 	
 	if(s == 0) {
 		// initialization of arrays
 		int** matrix = (int**) malloc (sizeof(int*) * n); // main matrix
-		int* y = (int*) malloc (sizeof(int) * n); // vector y
 		ARGS* params = (ARGS*) malloc (sizeof(ARGS) * t); // parameters for thread function
-				
+	  int* y = (int*) malloc (sizeof(int) * n);
+	  
 		if(matrix == NULL || params == NULL || y == NULL){
 			printf("Memory allocation failed\n");
 			return 0;
 		}
-				
+		
 		// 2d arrays
 		for(int i=0; i<n; i++){
 			matrix[i] = (int*) malloc (sizeof(int) * n);
@@ -408,7 +412,7 @@ int main(int argc, char *argv[]){
 			y[i] = randnum;
 			randnum = 0;
 		}
-	
+		
 		// filling up matrix with values
 		srand(time(NULL));
 		
@@ -434,14 +438,14 @@ int main(int argc, char *argv[]){
 		
 		printf("\n");
 		
-		printf("==================\n");
-		
-		for(int i=0; i<n; i++){
+		for(int i=0; i<n; i++) {
 			printf("%d\t", y[i]);
 		}
 		
 		printf("\n");
 		*/
+		
+		printf("\n");
 		
 		// computing remainder
 		remainder = n % t;
@@ -467,9 +471,7 @@ int main(int argc, char *argv[]){
 			
 			//printf("%d %d %d %d\n", params[i].start, params[i].end, params[i].tid, bound);
 		}
-				
-	 	//gettimeofday(&begin, NULL);
-	 	
+					 	
 	 	server(ip_addr, t, p, params, ports); // initialize server
 	 	
 	 	// memory deallocation
@@ -479,10 +481,12 @@ int main(int argc, char *argv[]){
 				
 		free(matrix);
 		free(params); 
-		
+		 	
 	} else {		
 		client(ip_addr, t, p);			
 	}
-	
+
+	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
+
 	return 0;
 }
