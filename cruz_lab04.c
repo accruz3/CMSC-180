@@ -92,6 +92,12 @@ void* handle_writes(void* args) {
 		write(connfd, &element, sizeof(int));
 	}
 	
+	for(int i=0; i<n; i++) {
+		read(connfd, &r_temp, sizeof(double));
+		printf("%f\n", r_temp);
+		if(r_temp != -2) r[i] = r_temp;
+	}
+	
 	close(connfd);
 	pthread_exit(NULL);
 }
@@ -183,12 +189,6 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		pthread_create(&writeThreads[clientnum], NULL, handle_writes, &clientarg[clientnum]);
 		pthread_setaffinity_np(writeThreads[clientnum], sizeof(cpu_set_t), &cpuset);
 		
-		for(int i=0; i<params[clientnum].n; i++) {
-			read(connfd[clientnum], &temp, sizeof(double));
-			printf("%f\n", temp);
-			if(temp != -2) r[i] = temp;
-		}
-	
 		read(connfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
