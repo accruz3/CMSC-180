@@ -50,6 +50,7 @@ typedef struct serverargs {
 } SERVERARGS; 
 
 struct timeval begin;
+pthread_mutex_t lock;
 
 void* handle_acknowledgements(void* args) {
 	int sockfd = *((int*)args);
@@ -91,13 +92,7 @@ void* handle_writes(void* args) {
 		int element = y[i];
 		write(connfd, &element, sizeof(int));
 	}
-	
-	for(int i=0; i<n; i++) {
-		read(connfd, &r_temp, sizeof(double));
-		printf("%f\n", r_temp);
-		if(r_temp != -2) r[i] = r_temp;
-	}
-	
+			
 	close(connfd);
 	pthread_exit(NULL);
 }
@@ -110,7 +105,7 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	SERVERARGS serverarg[count];	
 	char ack[4];
 	double* r = (double*) malloc (sizeof(double) * params[clientnum].n); // vector r
-	double temp;
+	double* r_temp = (double*) malloc (sizeof(double) * params[clientnum].n);
  	
  	for(int i=0; i<count; i++){
  		// socket create and verification 
@@ -189,6 +184,12 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 		pthread_create(&writeThreads[clientnum], NULL, handle_writes, &clientarg[clientnum]);
 		pthread_setaffinity_np(writeThreads[clientnum], sizeof(cpu_set_t), &cpuset);
 		
+		read(connfd[clientnum], r_temp, sizeof(double) * params[clientnum].n);
+		
+		for(int i=0; i<params[clientnum].n; i++) {
+			printf("%f\n", i, r_temp[i]);
+		}
+				
 		read(connfd[clientnum], ack, sizeof(ack));
 		clientnum += 1;
 	}
@@ -311,13 +312,13 @@ void* client(char* ip, int count, int port){
 			printf("%d\t", y[i]);
 		}
 		*/
-
+	
   	for(int i=0; i<n; i++){
-  		double element = r[i];
-  		write(sockfd, &element, sizeof(double));
+  		printf("%f\n", r[i]);
   	}
   	
   	printf("\n");
+  	write(sockfd, r, sizeof(double) * n);
   	write(sockfd, ack, sizeof(ack)); 
 	}
 
