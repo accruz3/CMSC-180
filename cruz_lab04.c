@@ -204,6 +204,10 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	for(int i = 0; i < count; i++) {
 	  pthread_join(writeThreads[i], NULL);
 	}
+	
+	gettimeofday(&stop, NULL);
+	
+	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
 }
 
 void* client(char* ip, int count, int port){
@@ -326,11 +330,12 @@ void* client(char* ip, int count, int port){
 
 	// close the socket
 	close(sockfd);
+	
+	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
 }
 
 int main(int argc, char *argv[]){
 	int n = atoi(argv[1]), p = atoi(argv[2]), s = atoi(argv[3]), t, randnum, count = 0, bound = 0, start = 0, remainder = 0, end = 0;
-	struct timeval stop;
 	FILE *fp;
 	char* line = NULL;
 	char* ip_addr = NULL;
@@ -468,13 +473,10 @@ int main(int argc, char *argv[]){
 				
 		free(matrix);
 		free(params); 
-		gettimeofday(&stop, NULL);
 		
 	} else {		
 		client(ip_addr, t, p);			
 	}
 	
-	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
-
 	return 0;
 }
