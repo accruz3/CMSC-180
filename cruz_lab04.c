@@ -54,16 +54,6 @@ typedef struct serverargs {
 struct timeval begin, stop;
 pthread_mutex_t lock;
 
-void* handle_acknowledgements(void* args) {
-	int sockfd = *((int*)args);
-	char ack[4];
-	
-	printf("%d acknowledged\n", sockfd);
-	read(sockfd, ack, sizeof(ack)); 
-	close(sockfd);
-	pthread_exit(NULL);
-}
-
 void* handle_writes(void* args) {
 	CLIENTARGS* temp = (CLIENTARGS*) args;
 	
@@ -219,8 +209,6 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 			//printf("%f\n", clientarg[i].r[j]);
 		}
 	}
-	
-	printf("%d\n", temp);
 
 	gettimeofday(&stop, NULL);
 }
@@ -297,7 +285,6 @@ void* client(char* ip, int count, int port){
 		int r_bound = start;
 		
 		gettimeofday(&begin, NULL);
-		printf("%d\n", end-start);
 		
 		for(int i=0; i<(end-start); i++){
 			sum_x = sum_x2 = sum_y = sum_y2 = sum_xy = ans = 0;
@@ -444,9 +431,7 @@ int main(int argc, char *argv[]){
 		
 		printf("\n");
 		*/
-		
-		printf("\n");
-		
+				
 		// computing remainder
 		remainder = n % t;
 		
