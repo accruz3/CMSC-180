@@ -189,13 +189,13 @@ void server(char* ip, int count, int port, ARGS* params, int* ports){
 	}
 	
 	// FOR CHECKING
-	/* 	
+	
 	for(int i=0; i<params[0].n; i++) {
 		printf("%f\n", r[i]);
 	}
 	
 	printf("\n");
-	*/
+	
 	
 	for(int i = 0; i < count; i++) {
 	  pthread_join(writeThreads[i], NULL);
@@ -323,7 +323,11 @@ void* client(char* ip, int count, int port){
 			printf("%f\n", r[i]);
 		}
 		*/
-				
+		
+		for(int i=0; i<n; i++) {
+			printf("%f\n", r[i]);
+		}
+			
 		write(sockfd, ack, sizeof(ack));
 	}
 
@@ -471,7 +475,7 @@ int main(int argc, char *argv[]){
 		client(ip_addr, t, p);			
 	}
 
-	printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
+	//printf("time elapsed: %f\n", (double)((stop.tv_sec - begin.tv_sec) * 1000000 + stop.tv_usec - begin.tv_usec)/1000000);
 
 	return 0;
 }
