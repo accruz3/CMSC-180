@@ -343,7 +343,7 @@ int main(int argc, char *argv[]){
 	size_t len = 0;
 	ssize_t read;
 	
-	fp = fopen("cruz_lab04_config.in", "r");
+	fp = fopen("cruz_lab05_config.in", "r");
 	if(fp == NULL){
 		exit(EXIT_FAILURE);
 	}
